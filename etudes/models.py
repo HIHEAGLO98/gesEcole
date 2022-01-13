@@ -5,7 +5,7 @@ import datetime
 
 class Parcours(models.Model):
     codeParc = models.CharField(max_length=5, primary_key=True)
-    libParc = models.CharField(max_length=100, blank=False)
+    libParc = models.CharField(max_length=100, blank=False, unique=True)
 
     def __str__(self):
         return self.libParc
@@ -17,13 +17,13 @@ class Parcours(models.Model):
 
 
 class Niveau(models.Model):
-    codeNiv = models.BigAutoField(primary_key=True)
-    libNiv = models.CharField(max_length=20, blank=False)
-    nbModules = models.IntegerField(default=0)
-    codeParc = models.ForeignKey(Parcours, on_delete=models.CASCADE, blank=False)
+    codeNiv = models.BigAutoField(primary_key=True, blank=False)
+    libNiv = models.CharField(max_length=50, db_column='libNiv',  blank=False, unique=True)
+    nbModules = models.IntegerField(default=0, db_column='nbreModule')
+    codeParc = models.ForeignKey(Parcours, db_column='codeParc', on_delete=models.CASCADE, blank=False)
 
     def __str__(self):
-        return self.libNiv, self.nbModules, self.codeParc
+        return self.libNiv
 
     class Meta:
         db_table = 'NIVEAU'
@@ -37,14 +37,14 @@ class Etudiant(models.Model):
         ('F', 'Féminin'),
     )
     numEtu = models.BigAutoField(primary_key=True)
-    nomEtu = models.CharField(max_length=30, blank=False)
-    prenomEtu = models.CharField(max_length=50, blank=False)
+    nomEtud = models.CharField(max_length=50, blank=False)
+    prenomEtud = models.CharField(max_length=50, blank=False)
     sexe = models.CharField(max_length=1, choices=SEXE_CHOICES)
     dateNaissance = models.DateField(blank=False)
-    codeParc = models.ForeignKey(Parcours, on_delete=models.CASCADE, blank=False)
+    codeParc = models.ForeignKey(Parcours, db_column='codeParc', on_delete=models.CASCADE, blank=False)
 
     def __str__(self):
-        return [self.nomEtu, self.prenomEtu, self.sexe, self.codeParc, self.dateNaissance]
+        return f"{self.nomEtud} {self.prenomEtud}"
 
     class Meta:
         db_table = 'ETUDIANT'
@@ -54,17 +54,18 @@ class Etudiant(models.Model):
 
 class Inscrire(models.Model):
     date = datetime.datetime.now()
-    codeIns = models.BigAutoField(primary_key=True)
-    numEtu = models.ForeignKey(Etudiant, on_delete=models.RESTRICT, blank=False)
-    codeNiv = models.ForeignKey(Niveau, on_delete=models.RESTRICT, blank=False)
-    annneeIns = models.IntegerField(default=date.year)
+    Id = models.BigAutoField(primary_key=True, blank=False)
+    numEtu = models.ForeignKey(Etudiant, db_column="NumEtu", on_delete=models.RESTRICT, blank=False, unique=True)
+    codeNiv = models.ForeignKey(Niveau, db_column="CodeNiv", on_delete=models.RESTRICT, blank=False)
+    anneeIns = models.IntegerField(default=date.year)
 
     def __str__(self):
-        return self.codeIns
+        return f"{self.numEtu}, {self.codeNiv}, Année: {self.anneeIns}"
 
     class Meta:
         db_table = 'INSCRIRE'
         verbose_name = "Inscrire"
+        # unique_together = ('numEtu', 'codeNiv')
         verbose_name_plural = 'Inscrires'
 
 
@@ -75,10 +76,10 @@ class Enseignant(models.Model):
     nomEns = models.CharField(max_length=30, blank=False)
     prenomEns = models.CharField(max_length=30, blank=False)
     grade = models.CharField(max_length=25, blank=False)
-    annneePriseFonct = models.IntegerField(default=date.year)
+    anneePriseFonction = models.IntegerField(default=date.year, db_column='anneePriseFonction')
 
     def __str__(self):
-        return self.nomEns
+        return f"{self.nomEns} {self.prenomEns}"
 
     class Meta:
         db_table = 'ENSEIGNANT'
@@ -88,7 +89,7 @@ class Enseignant(models.Model):
 
 class Classe(models.Model):
     codeClass = models.CharField(max_length=5, blank=False, primary_key=True)
-    libClass = models.CharField(max_length=20, blank=False)
+    libClass = models.CharField(max_length=30, blank=False, unique=True)
     capacite = models.IntegerField()
 
     def __str__(self):
@@ -101,7 +102,7 @@ class Classe(models.Model):
 
 class Evaluation(models.Model):
     codeEval = models.CharField(max_length=10, blank=False, primary_key=True)
-    libEval = models.CharField(max_length=30, blank=False)
+    libEval = models.CharField(max_length=50, blank=False, unique=True)
     pourcentage = models.IntegerField(blank=False, default=range(0, 100))
 
     def __str__(self):
@@ -117,11 +118,11 @@ class Module(models.Model):
     date = datetime.datetime.now()
 
     codeMod = models.CharField(max_length=10, blank=False, primary_key=True)
-    libMod = models.CharField(max_length=20, blank=False)
+    libMod = models.CharField(max_length=100, blank=False, unique=True)
     nbCredit = models.IntegerField(blank=False)
     est_requis = models.BooleanField(blank=False)
-    codeNiv = models.ForeignKey(Niveau, on_delete=models.RESTRICT, blank=False)
-    annneeCreation = models.IntegerField(default=date.year)
+    codeNiv = models.ForeignKey(Niveau, db_column='codeNiv', on_delete=models.RESTRICT, blank=False)
+    annneeCreation = models.IntegerField(default=date.year, db_column='anneeCreation')
 
     def __str__(self):
         return self.libMod
@@ -132,64 +133,57 @@ class Module(models.Model):
         verbose_name_plural = 'Modules'
 
 
-class ModulePrerequis(models.Model):
-    id = models.BigAutoField(blank=False, primary_key=True)
-    codeMod = models.ForeignKey(Module, on_delete=models.RESTRICT, blank=False, related_name='codeModule')
-    codePrerequis = models.ForeignKey(Module, on_delete=models.RESTRICT, blank=False, related_name='codeRequis')
+class ModuleRequis(models.Model):
+    Id = models.BigAutoField(primary_key=True, blank=False)
+    codeMod = models.ForeignKey(Module, db_column='codeMod', on_delete=models.RESTRICT, blank=False,
+                                related_name='codeModule')
+    codePrerequis = models.ForeignKey(Module, db_column='codeModRequis', on_delete=models.RESTRICT, blank=False,
+                                      related_name='codeRequis')
 
     def __str__(self):
-        return self.codeMod, self.codePrerequis
+        return f"{self.codeMod}, {self.codePrerequis}"
 
     class Meta:
-        db_table = 'MODULES_PREREQUIS'
+        db_table = 'MODULES_REQUIS'
+        # que_together = ('codeMod', 'codePrerequis')
         verbose_name = 'Module requis'
         verbose_name_plural = 'Module requis'
 
 
 class Dispenser(models.Model):
     date = datetime.datetime.now()
-
-    codeDisp = models.BigAutoField(primary_key=True)
-    codeMod = models.ForeignKey(Module, on_delete=models.RESTRICT, blank=False)
-    codeclass = models.ForeignKey(Classe, on_delete=models.RESTRICT, blank=False)
-    numEns = models.ForeignKey(Enseignant, on_delete=models.RESTRICT, blank=False)
-    annneeDisp = models.IntegerField(default=date.year)
+    Id = models.BigAutoField(primary_key=True, blank=False)
+    codeMod = models.ForeignKey(Module, db_column="codeMod", on_delete=models.RESTRICT, blank=False)
+    codeclass = models.ForeignKey(Classe, db_column="codeClass", on_delete=models.RESTRICT, blank=False)
+    numEns = models.ForeignKey(Enseignant, db_column="numEns", on_delete=models.RESTRICT, blank=False)
+    annneeDisp = models.IntegerField(default=date.year, db_column='anneeDisp')
 
     def __str__(self):
-        return self.codeMod, self.numEns, self.codeclass
+        return f"{self.numEns}, {self.codeMod}, {self.codeclass}"
 
     class Meta:
         db_table = 'DISPENSER'
         verbose_name = 'Dispenser'
+        # nique_together = ('codeMod', 'codeclass', 'numEns')
         verbose_name_plural = 'Dispenser'
 
 
-class ModuleEval(models.Model):
-    codeModEval = models.BigAutoField(primary_key=True)
-    dateEval = models.DateField(blank=False)
-    codeMod = models.ForeignKey(Module, on_delete=models.RESTRICT, blank=False)
-    codeEval = models.ForeignKey(Evaluation, on_delete=models.RESTRICT, blank=False)
-
-    class Meta:
-        db_table = 'MODULE_EVAL'
-        verbose_name = 'Module Evaluation'
-        verbose_name_plural = 'Module Evaluations'
-
-    def __str__(self):
-        return self.codeMod, self.codeEval
-
-
 class Noter(models.Model):
-    codeNote = models.BigAutoField(primary_key=True)
-    note = models.FloatField(blank=False, default=range(0, 20))
-    valide = models.BooleanField()
-    codeModEval = models.ForeignKey(ModuleEval, on_delete=models.RESTRICT, blank=False)
-    numEtu = models.ForeignKey(Etudiant, on_delete=models.RESTRICT, blank=False)
+    Id = models.BigAutoField(primary_key=True, blank=False)
+    numEtu = models.ForeignKey(Etudiant, db_column='numEtu', on_delete=models.RESTRICT)  # Field name
+    # made lowercase.
+    codeMod = models.ForeignKey(Module, db_column='codeMod', on_delete=models.RESTRICT)  # Field name made lowercase.
+    codeEval = models.ForeignKey(Evaluation, db_column='codeEval', on_delete=models.RESTRICT)
+    # Field name made lowercase.
+    note = models.FloatField(blank=True, null=True)
+    valide = models.BooleanField(blank=True, null=True)
+    dateEval = models.DateField(db_column='dateEval')  # Field name made lowercase.
 
     class Meta:
         db_table = 'NOTER'
         verbose_name = 'Noter'
         verbose_name_plural = 'Noter'
+        # unique_together = ('numEtud', 'codeMod', 'codeEval')
 
     def __str__(self):
-        return self.numEtu, self.codeModEval, self.note
+        return f"{self.numEtu}, {self.codeMod}, Note: {self.note}"

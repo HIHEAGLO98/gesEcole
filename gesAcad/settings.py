@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'gesAcad.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "mssql",
-        "NAME": "gesEcole",
+        "NAME": "GesEcoleFinale",
         "USER": "sa",
         "PASSWORD": "Augustin98",
         "HOST": "DESKTOP-DB8STSO",
